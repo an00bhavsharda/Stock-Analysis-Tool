@@ -1,0 +1,83 @@
+import yfinance as yf 
+import numpy as np
+from sklearn.model_selection import train_test_split 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import	accuracy_score,	precision_score, recall_score, f1_score, confusion_matrix
+
+def fetch_stock_data(symbol, start_date, end_date): """
+Fetches historical stock data using Yahoo Finance API. """
+data = yf.download(symbol, start=start_date, end=end_date) return data
+
+def prepare_features(data): """
+Prepares features for machine learning model. """
+# Create new column 'Change' representing daily price change data['Change'] = np.where(data['Close'].shift(-1) > data['Close'], 1, 0)
+
+# Define features
+features = ['Open', 'High', 'Low', 'Close', 'Volume']
+
+# Drop rows with NaN values data.dropna(inplace=True)
+
+X = data[features] y = data['Change']
+
+return X, y
+
+def train_model(X_train, y_train): """
+Trains a Random Forest classifier. """
+clf = RandomForestClassifier(n_estimators=100, random_state=42)
+ 
+clf.fit(X_train, y_train) return clf
+
+def analyze_and_invest(symbol, start_date, end_date): # Fetch stock data
+print("Fetching stock data...")
+stock_data = fetch_stock_data(symbol, start_date, end_date)
+
+# Prepare features
+print("Preparing features for analysis...") X, y = prepare_features(stock_data)
+
+# Split data into training and testing sets print("Splitting data into training and testing sets...")
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train model print("Training the model...")
+model = train_model(X_train, y_train)
+
+# Feature importance analysis print("Analyzing feature importance...") importances = model.feature_importances_ feature_names = X.columns
+feature_importance_dict = dict(zip(feature_names, importances)) print("\nFeature Importance:")
+print("	")
+for feature, importance in feature_importance_dict.items(): print(f"{feature}: {importance:.4f}")
+
+# Predictions
+print("Making predictions on the testing set...") predictions = model.predict(X_test)
+
+# Calculate evaluation metrics
+accuracy = accuracy_score(y_test, predictions) precision = precision_score(y_test, predictions) recall = recall_score(y_test, predictions)
+f1 = f1_score(y_test, predictions)
+
+# Confusion matrix
+cm = confusion_matrix(y_test, predictions) # Print analysis
+ 
+print("\nAnalysis of the model:")
+print("	")
+print(f"Accuracy: {accuracy:.2f}") print(f"Precision: {precision:.2f}") print(f"Recall: {recall:.2f}")
+print(f"F1 Score: {f1:.2f}") print("Confusion Matrix:") print(cm)
+print("	")
+
+# Strategy development print("\nDeveloping trading strategy...")
+# Example strategy: Buy if previous day's close price > open price, else sell
+signals = np.where(stock_data['Close'].shift(-1) > stock_data['Open'].shift(-1), 1, -1) stock_data['Signal'] = signals
+
+# Backtesting
+print("Backtesting the trading strategy...") stock_data['Returns'] = stock_data['Close'].pct_change()
+stock_data['Strategy_Returns'] = stock_data['Signal'] * stock_data['Returns'].shift(-1) cumulative_returns = (1 + stock_data['Strategy_Returns']).cumprod()
+
+# Risk management
+print("Applying risk management...")
+# Example: Apply stop loss at -2% from entry price stock_data['Stop_Loss'] = stock_data['Open'] * 0.98
+stock_data['Strategy_Returns'] = np.where(stock_data['Strategy_Returns'] < -0.02, -0.02, stock_data['Strategy_Returns'])
+cumulative_returns_with_stop_loss = (1 + stock_data['Strategy_Returns']).cumprod()
+
+# Continuous improvement print("Continuously improving the strategy...")
+# Example: Update strategy parameters based on recent market performance print("Analysis and investment process completed.")
+if  name	== " main ": # User inputs
+symbol = input("Enter stock symbol (e.g., AAPL for Apple Inc.): ") start_date = input("Enter start date (YYYY-MM-DD): ")
+end_date = input("Enter end date (YYYY-MM-DD): ")
+
